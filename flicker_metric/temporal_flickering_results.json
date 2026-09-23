@@ -1,0 +1,30 @@
+{
+    "overall": 1.2416017258321193,
+    "total_videos": 6,
+    "video_results": [
+        {
+            "video_path": "/shared/john/AR_dawood/AR/videos/260609_sf_from_basewan50_continue_4k/iter_8000/without_recache/A stylish woman strolls down a bustling Tokyo street, the warm glow of neon lights and animated city-0.mp4",
+            "video_results": 0.9377333511902012
+        },
+        {
+            "video_path": "/shared/john/AR_dawood/AR/videos/260609_sf_from_basewan50_continue_4k/iter_8000/without_recache/A stunning mid-afternoon landscape photograph with a low camera angle, showcasing several giant wool-0.mp4",
+            "video_results": 1.2465348577413227
+        },
+        {
+            "video_path": "/shared/john/AR_dawood/AR/videos/260609_sf_from_basewan50_continue_4k/iter_8000/without_recache/A movie trailer in a classic cinematic style, featuring the adventurous journey of a 30-year-old spa-0.mp4",
+            "video_results": 1.100488115469465
+        },
+        {
+            "video_path": "/shared/john/AR_dawood/AR/videos/260609_sf_from_basewan50_continue_4k/iter_8000/without_recache/A drone view of waves crashing against the rugged cliffs along Big Sur\u2019s Garay Point beach. The cras-0.mp4",
+            "video_results": 2.4770277262258458
+        },
+        {
+            "video_path": "/shared/john/AR_dawood/AR/videos/260609_sf_from_basewan50_continue_4k/iter_8000/without_recache/A close-up 3D animated scene of a short, fluffy monster kneeling beside a melting red candle. The mo-0.mp4",
+            "video_results": 0.6448639281125589
+        },
+        {
+            "video_path": "/shared/john/AR_dawood/AR/videos/260609_sf_from_basewan50_continue_4k/iter_8000/without_recache/A dynamic rally car speeding through a tight turn on a winding track, tires screeching as it navigat-0.mp4",
+            "video_results": 1.042962376253322
+        }
+    ]
+}

@@ -75,6 +75,7 @@ class CausalInferencePipeline(torch.nn.Module):
         rectified_tf = False,
         report_timing: bool = False,
         perform_recache: bool = True,
+        att_map_collector=None,
     ) -> torch.Tensor:
         """
         Perform inference on the given noise and text prompts.
@@ -174,6 +175,8 @@ class CausalInferencePipeline(torch.nn.Module):
                 assert (num_input_frames - 1) % self.num_frame_per_block == 0
                 num_input_blocks = (num_input_frames - 1) // self.num_frame_per_block
                 output[:, :1] = initial_latent[:, :1]
+                if att_map_collector is not None:
+                    att_map_collector.add_context_chunk(1)
                 self.generator(
                     noisy_image_or_video=initial_latent[:, :1],
                     conditional_dict=conditional_dict,
@@ -192,6 +195,8 @@ class CausalInferencePipeline(torch.nn.Module):
                 current_ref_latents = \
                     initial_latent[:, current_start_frame:current_start_frame + self.num_frame_per_block]
                 output[:, current_start_frame:current_start_frame + self.num_frame_per_block] = current_ref_latents
+                if att_map_collector is not None:
+                    att_map_collector.add_context_chunk(self.num_frame_per_block)
                 self.generator(
                     noisy_image_or_video=current_ref_latents,
                     conditional_dict=conditional_dict,
@@ -214,6 +219,8 @@ class CausalInferencePipeline(torch.nn.Module):
         if self.independent_first_frame and initial_latent is None:
             all_num_frames = [1] + all_num_frames
         for block_index, current_num_frames in enumerate(tqdm.tqdm(all_num_frames)):
+            if att_map_collector is not None:
+                att_map_collector.start_chunk(current_num_frames)
             # Optional: time the first block (TTFC). Excludes the KV-cache
             # refresh pass that follows the main denoising.
             if report_timing and block_index == 0:
@@ -236,6 +243,8 @@ class CausalInferencePipeline(torch.nn.Module):
 
             # Step 3.1: Spatial denoising loop
             for index, current_timestep in enumerate(current_denoising_list):
+                if att_map_collector is not None:
+                    att_map_collector.start_step(current_timestep)
                 # set current timestep
                 timestep = torch.ones(
                     [batch_size, current_num_frames],
@@ -268,6 +277,9 @@ class CausalInferencePipeline(torch.nn.Module):
                         crossattn_cache=self.crossattn_cache,
                         current_start=current_start_frame * self.frame_seq_length
                     )
+
+                if att_map_collector is not None:
+                    att_map_collector.finish_step()
 
             # Step 3.2: record the model's output
             output[:, current_start_frame:current_start_frame + current_num_frames] = denoised_pred

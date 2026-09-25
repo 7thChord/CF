@@ -55,7 +55,8 @@ class CausalDiffusionInferencePipeline(torch.nn.Module):
         initial_latent: Optional[torch.Tensor] = None,
         return_latents: bool = False,
         start_frame_index: Optional[int] = 0,
-        return_video=True
+        return_video=True,
+        att_map_collector=None,
     ) -> torch.Tensor:
         """
         Perform inference on the given noise and text prompts.
@@ -136,6 +137,8 @@ class CausalDiffusionInferencePipeline(torch.nn.Module):
                 assert (num_input_frames - 1) % self.num_frame_per_block == 0
                 num_input_blocks = (num_input_frames - 1) // self.num_frame_per_block
                 output[:, :1] = initial_latent[:, :1]
+                if att_map_collector is not None:
+                    att_map_collector.add_context_chunk(1)
                 self.generator(
                     noisy_image_or_video=initial_latent[:, :1],
                     conditional_dict=conditional_dict,
@@ -165,6 +168,8 @@ class CausalDiffusionInferencePipeline(torch.nn.Module):
                 current_ref_latents = \
                     initial_latent[:, cache_start_frame:cache_start_frame + self.num_frame_per_block]
                 output[:, cache_start_frame:cache_start_frame + self.num_frame_per_block] = current_ref_latents
+                if att_map_collector is not None:
+                    att_map_collector.add_context_chunk(self.num_frame_per_block)
                 self.generator(
                     noisy_image_or_video=current_ref_latents,
                     conditional_dict=conditional_dict,
@@ -191,6 +196,8 @@ class CausalDiffusionInferencePipeline(torch.nn.Module):
         if self.independent_first_frame and initial_latent is None:
             all_num_frames = [1] + all_num_frames
         for current_num_frames in all_num_frames:
+            if att_map_collector is not None:
+                att_map_collector.start_chunk(current_num_frames)
             noisy_input = noise[
                 :, cache_start_frame - num_input_frames:cache_start_frame + current_num_frames - num_input_frames]
             latents = noisy_input
@@ -198,6 +205,8 @@ class CausalDiffusionInferencePipeline(torch.nn.Module):
             # Step 3.1: Spatial denoising loop
             sample_scheduler = self._initialize_sample_scheduler(noise)
             for _, t in enumerate(tqdm(sample_scheduler.timesteps)):
+                if att_map_collector is not None:
+                    att_map_collector.start_step(t)
                 latent_model_input = latents
                 timestep = t * torch.ones(
                     [batch_size, current_num_frames], device=noise.device, dtype=torch.float32
@@ -212,6 +221,9 @@ class CausalDiffusionInferencePipeline(torch.nn.Module):
                     current_start=current_start_frame * self.frame_seq_length,
                     cache_start=cache_start_frame * self.frame_seq_length
                 )
+                if att_map_collector is not None:
+                    # Store the positive-prompt pass; the negative pass is for guidance.
+                    att_map_collector.finish_step()
                 flow_pred_uncond, _ = self.generator(
                     noisy_image_or_video=latent_model_input,
                     conditional_dict=unconditional_dict,

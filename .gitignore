@@ -7,3 +7,6 @@ output
 dataset
 prompts/vidprom_filtered_extended.txt
 logs
+tests
+
+temp**

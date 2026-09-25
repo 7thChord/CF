@@ -160,6 +160,15 @@ python inference.py \
 ```
 
 
+Add `--att_map` to an `inference.py` command to save an `attmap_<video-stem>.pth` file next to each video. Load it with `torch.load(path, weights_only=True)`. `["maps"][chunk][step]` is a float32 tensor with 26 query rows and 26 columns per visible key chunk. Each 26 × 26 block contains averages of disjoint token groups from the current query chunk and one cached key chunk; pooling never crosses a chunk boundary. `key_chunk_indices[chunk][step]` identifies the source chunk for each consecutive 26-column block, using `chunk_frames` (which includes initial context chunks). The file also records the raw query and key lengths, retained tokens per key chunk, tokens per frame, visible sink tokens, and denoising timesteps. Maps average attention heads and transformer layers from the positive-prompt denoising pass. If the first chunk uses a separate denoising schedule, its row can have a different number of steps. This option adds attention computation and runtime.
+
+Render the saved maps as one PNG per denoising step and one average PNG per file. The script also writes `all_files_step_000.png` through `all_files_step_<T-1>.png` by averaging prompts at each step, plus `all_files_average.png` across per-file averages. Files must have the same chunk and step counts. Each PNG gets a `_weight.png` companion: it averages each 26 × 26 block, normalizes each row to sum to one, and displays the resulting chunk grid with a cold-to-warm color scale. Completely black rows remain zero.
+
+```bash
+python visualize_attention_maps.py output/chunkwise output/chunkwise/attention_images
+```
+
+
 ### Minute-level Long Video Generation
 Built on [Rolling Forcing](https://github.com/TencentARC/RollingForcing), we implemented minute-level long video generation. See [here](./long_video) for the detail.
 

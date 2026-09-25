@@ -230,10 +230,19 @@ class CausalWanSelfAttention(nn.Module):
                 local_start_index = local_end_index - num_new_tokens
                 kv_cache["k"][:, local_start_index:local_end_index] = roped_key
                 kv_cache["v"][:, local_start_index:local_end_index] = v
+            key_start = max(0, local_end_index - self.max_attention_size)
+            attention_keys = kv_cache["k"][:, key_start:local_end_index]
+            collector = getattr(self, "att_map_collector", None)
+            if collector is not None and collector._active:
+                visible_sink_tokens = max(0, min(sink_tokens - key_start, attention_keys.shape[1]))
+                collector.record(
+                    roped_query, attention_keys, frame_seqlen, visible_sink_tokens,
+                    key_start, current_start,
+                )
             x = attention(
                 roped_query,
-                kv_cache["k"][:, max(0, local_end_index - self.max_attention_size):local_end_index],
-                kv_cache["v"][:, max(0, local_end_index - self.max_attention_size):local_end_index]
+                attention_keys,
+                kv_cache["v"][:, key_start:local_end_index]
             )
             kv_cache["global_end_index"].fill_(current_end)
             kv_cache["local_end_index"].fill_(local_end_index)
